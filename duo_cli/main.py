@@ -26,25 +26,25 @@ ACCOUNTS_KEY = "DUOSortedAccountInfoArrayKey"
 MSGS = SimpleNamespace(
     NO_COPY_HELP="Disable copying to clipboard.",
     PASSWORD_HELP="Duo Mobile backup encryption password.",
-    NO_CONFIG_DIR="No configuration found at ~/.otp. Create?",
+    NO_CONFIG_DIR="No configuration found at ~/.duo. Create?",
     CONFIG_REQUIRED="Configuration directory required.",
     PLIST_REQUIRED="Duo Mobile backup plist file required.",
-    COPY_PLIST="Copy plist to ~/.otp?",
+    COPY_PLIST="Copy plist to ~/.duo?",
     CREATED_DIR=(
-        "Created directory [default]~/.otp[/default] :white_heavy_check_mark:"
+        "Created directory [default]~/.duo[/default] :white_heavy_check_mark:"
     ),
     ENTER_PATH="Path to Duo Mobile backup plist:",
     NOT_FOUND="Unable to locate Duo Mobile backup plist: {}",
     FOUND_BACKUP="Found com.duosecurity.DuoMobile.plist in iOS backup. Use?",
     BACKUP_NOT_FOUND=(
-        "Previously used iOS backup not found. Update ~/.otp/config.json"
+        "Previously used iOS backup not found. Update ~/.duo/config.json"
     ),
     NO_ACCOUNTS="No accounts are configured in your Duo Mobile backup.",
-    CHOOSE_ACCOUNT="Choose account to generate an OTP:",
+    CHOOSE_ACCOUNT="Choose account to generate a TOTP:",
     PASSWORD="Enter your Duo Mobile backup encryption password:",
     PW_REQUIRED="Your password is required to decrypt Duo Mobile backup.",
     PW_INCORRECT="Incorrect password",
-    STORE_PASSWORD="Store password in ~/.otp/config.json?",
+    STORE_PASSWORD="Store password in ~/.duo/config.json?",
     COPIED="Copied to clipboard :white_heavy_check_mark:",
 )
 
@@ -169,7 +169,7 @@ def ensure_config(otp_dir):
         print(MSGS.NOT_FOUND.format(config["plist"]), file=sys.stderr)
         sys.exit(1)
 
-    # Fallback to searching ~/.otp
+    # Fallback to searching ~/.duo
     matches = glob.glob(os.path.join(otp_dir, "*.plist"))
 
     if len(matches):
@@ -304,7 +304,7 @@ def ensure_password(otp_dir, config, plist, first_run=False):
 @click.option("--no-copy", default=None, is_flag=True, help=MSGS.NO_COPY_HELP)
 @click.option("--password", help=MSGS.PASSWORD_HELP)
 def main(account, no_copy, password):
-    otp_dir = os.path.expanduser("~/.otp")
+    otp_dir = os.path.expanduser("~/.duo")
 
     first_run = ensure_dir(otp_dir)
     config = ensure_config(otp_dir)
