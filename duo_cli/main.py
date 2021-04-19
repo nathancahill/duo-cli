@@ -56,21 +56,19 @@ def load_plist(path):
     return plist
 
 
-def box_from_plist(plist, password):
+def key_from_plist(plist, password):
     params = plist[PARAMS_KEY]
     salt = params["passwordSaltKey"]
     opslimit = params["opsLimitKey"]
     memlimit = params["memLimitKey"]
 
-    key = nacl.pwhash.argon2id.kdf(
+    return nacl.pwhash.argon2id.kdf(
         nacl.secret.SecretBox.KEY_SIZE,
         password.encode("utf8"),
         salt,
         opslimit=opslimit,
         memlimit=memlimit,
     )
-
-    return nacl.secret.SecretBox(key)
 
 
 def b64decrypt(box, cipher, nonce):
@@ -86,17 +84,22 @@ def validate_plist(path):
     return True
 
 
+def validate_key(plist, key):
+    box = nacl.secret.SecretBox(key)
+    [enc, nonce] = plist[TEST_KEY].split(":")
+
+    try:
+        b64decrypt(box, enc, nonce)
+    except nacl.exceptions.CryptoError:
+        return MSGS.PW_INCORRECT
+
+    return True
+
+
 def validate_password(plist):
     def validate(password):
-        box = box_from_plist(plist, password)
-        [enc, nonce] = plist[TEST_KEY].split(":")
-
-        try:
-            b64decrypt(box, enc, nonce)
-        except nacl.exceptions.CryptoError:
-            return MSGS.PW_INCORRECT
-
-        return True
+        key = key_from_plist(plist, password)
+        return validate_key(plist, key)
 
     return validate
 
@@ -245,9 +248,9 @@ def ensure_plist(config):
 
 
 def ensure_password(otp_dir, config, plist, first_run=False):
-    password = config.get("password")
+    key = config.get("password")
 
-    if not password:
+    if not key:
         questions = [
             {
                 "type": "password",
@@ -274,21 +277,23 @@ def ensure_password(otp_dir, config, plist, first_run=False):
             print(MSGS.PW_REQUIRED, file=sys.stderr)
             sys.exit(1)
 
+        key = key_from_plist(plist, password)
+
         if answers.get("save"):
-            config["password"] = password
+            config["password"] = key
             write_config(otp_dir, config)
 
         # Return password before validating again
-        return password
+        return key
 
-    # Validate stored or passed password
-    result = validate_password(plist)(password)
+    # Validate stored or passed key
+    result = validate_key(plist, password)
 
     if result is not True:
         print(MSGS.PW_INCORRECT, file=sys.stderr)
         sys.exit(1)
 
-    return password
+    return key
 
 
 @click.command()
@@ -300,15 +305,15 @@ def main(account, no_copy, password):
 
     first_run = ensure_dir(otp_dir)
     config = ensure_config(otp_dir)
-
-    if password:
-        config["password"] = password
+    plist = ensure_plist(config)
 
     if no_copy:
         config["copy"] = False
 
-    plist = ensure_plist(config)
-    password = ensure_password(otp_dir, config, plist, first_run)
+    if password:
+        config["password"] = key_from_plist(plist, password)
+
+    key = ensure_password(otp_dir, config, plist, first_run)
 
     accounts = list(map(json.loads, plist[ACCOUNTS_KEY]))
 
@@ -349,7 +354,7 @@ def main(account, no_copy, password):
         account = accounts[anwsers["account"]]
 
     # Decrypt encrypted OTP string
-    box = box_from_plist(plist, password)
+    box = nacl.secret.SecretBox(key)
     [enc, nonce] = account["encryptedOTPString"].split(":")
     plainbytes = b64decrypt(box, enc, nonce)
 
