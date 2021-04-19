@@ -145,6 +145,9 @@ def ensure_config(otp_dir):
         with open(config_path) as f:
             config = json.load(f)
 
+            if "password" in config:
+                config["password"] = base64.b64decode(config["password"])
+
     # Check if specified plist is valid
     if "plist" in config:
         # Special case for iOS backups
@@ -280,14 +283,14 @@ def ensure_password(otp_dir, config, plist, first_run=False):
         key = key_from_plist(plist, password)
 
         if answers.get("save"):
-            config["password"] = key
+            config["password"] = base64.b64encode(key).decode("ascii")
             write_config(otp_dir, config)
 
         # Return password before validating again
         return key
 
     # Validate stored or passed key
-    result = validate_key(plist, password)
+    result = validate_key(plist, key)
 
     if result is not True:
         print(MSGS.PW_INCORRECT, file=sys.stderr)

@@ -1,11 +1,11 @@
 [tool.poetry]
 name = "duo-cli"
 version = "0.1.0"
-description = ""
+description = "Duo Mobile CLI for generating TOTP codes."
 authors = ["Nathan Cahill <nathan@nathancahill.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.8"
 PyInquirer = "^1.0.3"
 passlib = "^1.7.4"
 PyNaCl = "^1.4.0"
@@ -22,4 +22,4 @@ requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-otp = "duo_cli.cli:main"
+duo = "duo_cli.cli:main"
